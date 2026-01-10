@@ -130,9 +130,6 @@ class CommunitySummarization:
         for node_id in node_ids:
             if node_id in temporal_timeline:
                 t_stories.append(temporal_timeline[node_id].t_story)
-            else:
-                # Check if node has temporal_range property
-                # This would come from the graph nodes
         
         if not t_stories:
             return (0, 0)
