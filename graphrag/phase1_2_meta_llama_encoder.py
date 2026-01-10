@@ -56,6 +56,7 @@ class MetaLlamaEncoder:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         
+        # Simple, clean model loading - Llama-3-8B-Instruct works without issues
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,

@@ -4,9 +4,10 @@ All assumptions and parameters are documented here.
 """
 
 # Model Configuration
-META_LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"  # Meta LLaMA 3.1 8B Instruct
-EMBEDDING_DIMENSION = 768
-EMAX_CONTEXT_LENGTH = 8192  # Llama 3.1 supports 8K context
+# Using Llama-3-8B-Instruct instead - more stable and works without rope_scaling issues
+META_LLAMA_MODEL_NAME = "meta-llama/Llama-3-8B-Instruct"  # Llama 3 8B Instruct (stable)
+EMBEDDING_DIMENSION = 4096  # Llama 3 uses 4096-dim embeddings
+EMAX_CONTEXT_LENGTH = 8192  # Llama 3 supports 8K context
 
 # Chunking Configuration (Phase 1.1)
 CHUNK_SIZE_TOKENS = 600
