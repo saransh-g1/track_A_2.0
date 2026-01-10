@@ -17,6 +17,7 @@ from typing import List, Dict, Tuple
 from schemas import PartialAnswer, FinalAnswer
 from config import META_LLAMA_MODEL_NAME
 from phase2_5_reduce_step import ReduceStep
+from model_loader import load_model_with_cache
 
 
 class MetaLlamaDecoder:
@@ -26,33 +27,26 @@ class MetaLlamaDecoder:
     Generates final answer from reduced partial answers and graph-verified facts.
     """
     
-    def __init__(self, model_name: str = None):
+    def __init__(self, model_name: str = None, local_files_only: bool = None):
         """
-        Initialize Meta LLaMA model for decoding.
+        Initialize Meta LLaMA model for decoding with caching support.
         
         Args:
             model_name: Override default model name if needed
+            local_files_only: If True, only use local cache files (no network checks).
+                             If None, uses USE_LOCAL_FILES_ONLY from config
         """
         self.model_name = model_name or META_LLAMA_MODEL_NAME
         
-        print(f"Loading Meta LLaMA model for final answer decoding: {self.model_name}")
+        print(f"Initializing Meta LLaMA decoder for final answer generation: {self.model_name}")
         
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
+        # Load tokenizer and model with caching configuration
+        self.tokenizer, self.model = load_model_with_cache(
+            model_name=self.model_name,
+            local_files_only=local_files_only,
             trust_remote_code=True
         )
         
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto" if torch.cuda.is_available() else None,
-            trust_remote_code=True
-        )
-        
-        self.model.eval()
         self.reduce_step = ReduceStep()
     
     def generate_final_answer(

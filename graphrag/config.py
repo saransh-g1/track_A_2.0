@@ -26,6 +26,15 @@ TOP_K_COMMUNITIES = 5  # Number of communities to select
 TOP_K_PARTIAL_ANSWERS = 3  # Number of partial answers to reduce
 MIN_RELEVANCE_SCORE = 50.0  # Minimum relevance score for partial answers
 
+# Model Caching Configuration
+# Set to True to prevent re-downloading models and use only local cache
+# When True, models will be loaded from ~/.cache/huggingface/hub/ without network checks
+# When False, Transformers will check for updates from the Hub
+USE_LOCAL_FILES_ONLY = True  # Set to False to allow checking for model updates
+
+# Hugging Face Cache Configuration
+# These can be set via environment variables: HF_HOME, TRANSFORMERS_CACHE
+# If not set, defaults to ~/.cache/huggingface/
 # Paths
 GRAPH_STORAGE_PATH = "./graph_storage"
 PATHWAY_STORAGE_PATH = "./pathway_storage"

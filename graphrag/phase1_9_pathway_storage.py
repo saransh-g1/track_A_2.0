@@ -29,6 +29,7 @@ from schemas import (
     ThematicState, TemporalEvent
 )
 from config import EMBEDDING_DIMENSION, META_LLAMA_MODEL_NAME, PATHWAY_STORAGE_PATH
+from model_loader import load_model_with_cache
 
 
 class PathwayStorage:
@@ -39,39 +40,30 @@ class PathwayStorage:
     Uses Meta LLaMA embedder for generating embeddings.
     """
     
-    def __init__(self, storage_path: str = None, model_name: str = None):
+    def __init__(self, storage_path: str = None, model_name: str = None, local_files_only: bool = None):
         """
-        Initialize Pathway storage.
+        Initialize Pathway storage with caching support.
         
         Args:
             storage_path: Path to storage directory
             model_name: Override default model name if needed
+            local_files_only: If True, only use local cache files (no network checks).
+                             If None, uses USE_LOCAL_FILES_ONLY from config
         """
         self.storage_path = storage_path or PATHWAY_STORAGE_PATH
         os.makedirs(self.storage_path, exist_ok=True)
         
         self.model_name = model_name or META_LLAMA_MODEL_NAME
         
-        print(f"Loading Meta LLaMA model for embeddings: {self.model_name}")
+        print(f"Initializing Pathway storage with Meta LLaMA embedder: {self.model_name}")
         
-        # Load tokenizer and model for embeddings
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            trust_remote_code=True
-        )
-        
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        
+        # Load tokenizer and model with caching configuration
         # For embeddings, we'll use the model's embedding layer
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto" if torch.cuda.is_available() else None,
+        self.tokenizer, self.model = load_model_with_cache(
+            model_name=self.model_name,
+            local_files_only=local_files_only,
             trust_remote_code=True
         )
-        
-        self.model.eval()
         
         # Storage dictionaries
         self.entities: Dict[str, PathwayEntity] = {}
