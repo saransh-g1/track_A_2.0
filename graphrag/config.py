@@ -4,8 +4,8 @@ All assumptions and parameters are documented here.
 """
 
 # Model Configuration
-# Using Llama-3-8B-Instruct instead - more stable and works without rope_scaling issues
-META_LLAMA_MODEL_NAME = "meta-llama/Llama-3-8B-Instruct"  # Llama 3 8B Instruct (stable)
+# Using Meta-Llama-3-8B-Instruct - correct HuggingFace repo name
+META_LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"  # Meta Llama 3 8B Instruct (correct name)
 EMBEDDING_DIMENSION = 4096  # Llama 3 uses 4096-dim embeddings
 EMAX_CONTEXT_LENGTH = 8192  # Llama 3 supports 8K context
 
