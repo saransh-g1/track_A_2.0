@@ -4,9 +4,9 @@ All assumptions and parameters are documented here.
 """
 
 # Model Configuration
-META_LLAMA_MODEL_NAME = "meta-llama/Llama-2-7b-chat-hf"  # Can be updated to Llama-3 or other Meta LLaMA models
+META_LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"  # Meta LLaMA 3.1 8B Instruct
 EMBEDDING_DIMENSION = 768
-EMAX_CONTEXT_LENGTH = 4096
+EMAX_CONTEXT_LENGTH = 8192  # Llama 3.1 supports 8K context
 
 # Chunking Configuration (Phase 1.1)
 CHUNK_SIZE_TOKENS = 600

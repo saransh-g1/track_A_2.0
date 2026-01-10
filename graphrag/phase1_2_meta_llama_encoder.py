@@ -70,13 +70,13 @@ class MetaLlamaEncoder:
         Generate response from Meta LLaMA.
         
         Args:
-            prompt: Input prompt
+            prompt: Input prompt (full formatted prompt with chat template)
             max_length: Maximum generation length
             
         Returns:
             Generated text
         """
-        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048)
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=8192)
         
         if torch.cuda.is_available():
             inputs = {k: v.cuda() for k, v in inputs.items()}
@@ -84,17 +84,19 @@ class MetaLlamaEncoder:
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_length=max_length,
+                max_new_tokens=max_length,
                 do_sample=False,
                 temperature=0.0,  # Deterministic extraction
                 pad_token_id=self.tokenizer.eos_token_id
             )
         
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Decode only the new tokens (generated part)
+        input_length = inputs['input_ids'].shape[1]
+        generated_tokens = outputs[0][input_length:]
+        response = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
         
-        # Remove prompt from response
-        if prompt in response:
-            response = response[len(prompt):].strip()
+        # Remove any Llama 3.1 specific tokens if present
+        response = response.replace("<|eot_id|>", "").strip()
         
         return response
     
@@ -158,12 +160,28 @@ class MetaLlamaEncoder:
         # Format prompt with chunk text
         prompt = STRUCTURED_EXTRACTION_PROMPT_TEMPLATE.format(chunk_text=chunk_text)
         
-        # Add system message for structured output
-        full_prompt = f"""<s>[INST] <<SYS>>
-You are a structured information extractor. You MUST return ONLY valid JSON following the exact schema provided. No explanations, no additional text, only JSON.
-<</SYS>>
-
-{prompt} [/INST]"""
+        # Use chat template for Llama 3.1 format
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a structured information extractor. You MUST return ONLY valid JSON following the exact schema provided. No explanations, no additional text, only JSON."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+        
+        # Apply chat template (automatically handles Llama 3.1 format)
+        if hasattr(self.tokenizer, "apply_chat_template"):
+            full_prompt = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True
+            )
+        else:
+            # Fallback to manual format for older tokenizers
+            full_prompt = f"{prompt}"
         
         # Generate response
         response = self._generate_response(full_prompt)

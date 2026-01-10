@@ -277,13 +277,30 @@ Provide a concise summary that captures the essence of this {level_name}, preser
         Returns:
             Generated text
         """
-        full_prompt = f"""<s>[INST] <<SYS>>
-You are a literary analysis assistant. Provide clear, concise summaries of narrative elements.
-<</SYS>>
-
-{prompt} [/INST]"""
+        # Use chat template for Llama 3.1 format
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a literary analysis assistant. Provide clear, concise summaries of narrative elements."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
         
-        inputs = self.tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=2048)
+        # Apply chat template (automatically handles Llama 3.1 format)
+        if hasattr(self.tokenizer, "apply_chat_template"):
+            full_prompt = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True
+            )
+        else:
+            # Fallback to manual format
+            full_prompt = f"{prompt}"
+        
+        inputs = self.tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=8192)
         
         if torch.cuda.is_available():
             inputs = {k: v.cuda() for k, v in inputs.items()}
@@ -291,18 +308,20 @@ You are a literary analysis assistant. Provide clear, concise summaries of narra
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_length=max_length,
+                max_new_tokens=max_length,
                 do_sample=True,
                 temperature=0.7,
                 top_p=0.9,
                 pad_token_id=self.tokenizer.eos_token_id
             )
         
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Decode only the new tokens (generated part)
+        input_length = inputs['input_ids'].shape[1]
+        generated_tokens = outputs[0][input_length:]
+        response = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
         
-        # Remove prompt from response
-        if full_prompt in response:
-            response = response[len(full_prompt):].strip()
+        # Remove any Llama 3.1 specific tokens if present
+        response = response.replace("<|eot_id|>", "").strip()
         
         return response
     
