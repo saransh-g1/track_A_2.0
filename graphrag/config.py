@@ -69,7 +69,7 @@ else:
 META_LLAMA_MODEL_NAME = MODEL_PATH if MODEL_PATH else "meta-llama/Meta-Llama-3-8B-Instruct"  # Use direct path or HuggingFace repo name
 EMBEDDING_DIMENSION = 4096  # Llama 3 uses 4096-dim embeddings
 EMAX_CONTEXT_LENGTH = 8192  # Llama 3 supports 8K context
-MAX_EXTRACTION_TOKENS = 256  # Max tokens for structured extraction (hard cap for performance)
+MAX_EXTRACTION_TOKENS = 768  # Max tokens for structured extraction (increased from 256 to prevent JSON truncation)
 EXTRACTION_BATCH_SIZE = 2  # Batch size for parallel chunk processing (2-4 recommended)
 
 # Chunking Configuration (Phase 1.1)
@@ -103,30 +103,35 @@ Extract ONLY the following from the text chunk (STRICT JSON schema):
     {{
       "entity_id": "e_<unique_id>",
       "entity_type": "character",
-      "name": "...",
-      "description": "...",
-      "attributes": {{}}
+      "name": "character name",
+      "description": "brief description of the character",
+      "attributes": {{"role": "protagonist/antagonist/supporting", "status": "alive/deceased"}}
     }}
   ],
   "claims": [
     {{
       "claim_id": "c_<unique_id>",
-      "subject": "e_...",
-      "predicate": "...",
-      "object": "...",
-      "certainty": 0.0-1.0
+      "subject": "e_<entity_id>",
+      "predicate": "verb/action",
+      "object": "what happened",
+      "certainty": 0.9
     }}
   ],
   "temporal_markers": [
     {{
       "marker_id": "tm_<unique_id>",
       "marker_type": "absolute|relative|sequence",
-      "text": "...",
-      "reference_event_id": "",
-      "time_value": "..."
+      "text": "exact temporal phrase from text",
+      "reference_event_id": "e_<event> or empty",
+      "time_value": "extracted time value"
     }}
   ]
 }}
+
+Focus on:
+- CHARACTERS only (no locations/objects)
+- VERIFIABLE CLAIMS about actions and states
+- EXPLICIT temporal references in the text
 
 Text chunk:
 {chunk_text}
