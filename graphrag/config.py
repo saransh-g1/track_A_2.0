@@ -3,11 +3,52 @@ Configuration for Track-A GraphRAG System.
 All assumptions and parameters are documented here.
 """
 
+import os
+from pathlib import Path
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent / '.env'
+try:
+    from dotenv import load_dotenv
+    # Load .env file from the same directory as this config file
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path, override=True)
+        print(f"[Config] Loaded .env file from: {env_path}")
+    else:
+        print(f"[Config] WARNING: .env file not found at: {env_path}")
+except ImportError:
+    # If python-dotenv is not installed, try to load manually
+    if env_path.exists():
+        print(f"[Config] Loading .env file manually from: {env_path}")
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+                    print(f"[Config] Loaded: {key.strip()}")
+    else:
+        print(f"[Config] WARNING: .env file not found at: {env_path}")
+
 # Model Configuration
-# Using Meta-Llama-3-8B-Instruct - correct HuggingFace repo name
-META_LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"  # Meta Llama 3 8B Instruct (correct name)
+# Load model path from .env file, fallback to default if not set
+MODEL_PATH = os.getenv("MODEL_PATH", None)  # Direct path to model snapshot directory
+
+# Debug: Print MODEL_PATH status
+if MODEL_PATH:
+    print(f"[Config] MODEL_PATH loaded from .env: {MODEL_PATH}")
+    if not os.path.exists(MODEL_PATH):
+        print(f"[Config] WARNING: MODEL_PATH does not exist: {MODEL_PATH}")
+else:
+    print("[Config] WARNING: MODEL_PATH not found in .env file. Will use HuggingFace repo (may download).")
+    print(f"[Config] .env file location: {env_path}")
+    print(f"[Config] .env file exists: {env_path.exists() if 'env_path' in locals() else 'N/A'}")
+
+META_LLAMA_MODEL_NAME = MODEL_PATH if MODEL_PATH else "meta-llama/Meta-Llama-3-8B-Instruct"  # Use direct path or HuggingFace repo name
 EMBEDDING_DIMENSION = 4096  # Llama 3 uses 4096-dim embeddings
 EMAX_CONTEXT_LENGTH = 8192  # Llama 3 supports 8K context
+MAX_EXTRACTION_TOKENS = 256  # Max tokens for structured extraction (hard cap for performance)
+EXTRACTION_BATCH_SIZE = 2  # Batch size for parallel chunk processing (2-4 recommended)
 
 # Chunking Configuration (Phase 1.1)
 CHUNK_SIZE_TOKENS = 600
@@ -26,50 +67,23 @@ TOP_K_COMMUNITIES = 5  # Number of communities to select
 TOP_K_PARTIAL_ANSWERS = 3  # Number of partial answers to reduce
 MIN_RELEVANCE_SCORE = 50.0  # Minimum relevance score for partial answers
 
-# Model Caching Configuration
-# Set to True to prevent re-downloading models and use only local cache
-# When True, models will be loaded from ~/.cache/huggingface/hub/ without network checks
-# When False, Transformers will check for updates from the Hub
-USE_LOCAL_FILES_ONLY = True  # Set to False to allow checking for model updates
-
-# Hugging Face Cache Configuration
-# These can be set via environment variables: HF_HOME, TRANSFORMERS_CACHE
-# If not set, defaults to ~/.cache/huggingface/
 # Paths
 GRAPH_STORAGE_PATH = "./graph_storage"
 PATHWAY_STORAGE_PATH = "./pathway_storage"
 
-# Extraction Prompt Templates
+# Extraction Prompt Templates (OPTIMIZED for Track-A: claims, temporal markers, entities only)
 STRUCTURED_EXTRACTION_PROMPT_TEMPLATE = """You are a structured information extractor for novel analysis.
 
-Extract information from the following text chunk following this STRICT JSON schema:
+Extract ONLY the following from the text chunk (STRICT JSON schema):
 
 {{
   "entities": [
     {{
       "entity_id": "e_<unique_id>",
-      "entity_type": "character|location|object",
+      "entity_type": "character",
       "name": "...",
       "description": "...",
       "attributes": {{}}
-    }}
-  ],
-  "events": [
-    {{
-      "event_id": "ev_<unique_id>",
-      "event_type": "...",
-      "description": "...",
-      "participants": ["e_..."],
-      "location": "e_..."
-    }}
-  ],
-  "relations": [
-    {{
-      "relation_id": "r_<unique_id>",
-      "source_entity_id": "e_...",
-      "target_entity_id": "e_...",
-      "relation_type": "...",
-      "strength": 0.0-1.0
     }}
   ],
   "claims": [
@@ -81,30 +95,13 @@ Extract information from the following text chunk following this STRICT JSON sch
       "certainty": 0.0-1.0
     }}
   ],
-  "themes": [
-    {{
-      "theme_id": "th_<unique_id>",
-      "theme_name": "...",
-      "description": "...",
-      "intensity": 0.0-1.0
-    }}
-  ],
   "temporal_markers": [
     {{
       "marker_id": "tm_<unique_id>",
       "marker_type": "absolute|relative|sequence",
       "text": "...",
-      "reference_event_id": "ev_...",
+      "reference_event_id": "",
       "time_value": "..."
-    }}
-  ],
-  "causal_links": [
-    {{
-      "causal_link_id": "cl_<unique_id>",
-      "cause_event_id": "ev_...",
-      "effect_event_id": "ev_...",
-      "evidence_type": "explicit|implicit|inferred",
-      "confidence": 0.0-1.0
     }}
   ]
 }}

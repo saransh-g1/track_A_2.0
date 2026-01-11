@@ -76,13 +76,16 @@ class OfflineGraphConstruction:
         self.chunks = self.ingestion.ingest_from_file(novel_path)
         print(f"Created {len(self.chunks)} chunks from {len(set(c.chapter_id for c in self.chunks))} chapters")
         
-        # Step 2: Meta LLaMA Encoder - Structured Extraction
-        print("\n[Step 2/9] Meta LLaMA Encoder - Structured Extraction...")
-        self.extractions = []
-        for chunk in self.chunks:
-            extraction = self.encoder.extract_structured(chunk.text, chunk.chunk_id)
-            self.extractions.append(extraction)
-        print(f"Extracted information from {len(self.extractions)} chunks")
+        # Step 2: Meta LLaMA Encoder - Structured Extraction (OPTIMIZED with batching)
+        print("\n[Step 2/9] Meta LLaMA Encoder - Structured Extraction (OPTIMIZED)...")
+        print(f"Processing {len(self.chunks)} chunks in batches...")
+        
+        start_time = time.time()
+        self.extractions = self.encoder.extract_batch(self.chunks)
+        total_time = time.time() - start_time
+        
+        print(f"Extracted information from {len(self.extractions)} chunks in {total_time/60:.1f} minutes")
+        print(f"Average time per chunk: {total_time/len(self.chunks):.2f} seconds")
         
         # Step 3: Temporal Normalization Layer
         print("\n[Step 3/9] Temporal Normalization Layer...")
