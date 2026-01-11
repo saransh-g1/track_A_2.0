@@ -8,6 +8,28 @@ from pathlib import Path
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent / '.env'
+
+# Create .env file if it doesn't exist with default model path
+if not env_path.exists():
+    print(f"[Config] .env file not found at: {env_path}")
+    print("[Config] Creating .env file with default model path...")
+    default_model_path = "/home/rs/24CS91R03/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+    env_content = f"""# Model Path Configuration
+# Set the direct path to your LLaMA model snapshot directory
+MODEL_PATH={default_model_path}
+"""
+    try:
+        with open(env_path, 'w') as f:
+            f.write(env_content)
+        print(f"[Config] Created .env file at: {env_path}")
+        print(f"[Config] Default MODEL_PATH: {default_model_path}")
+        print("[Config] You can edit .env to change the model path if needed.")
+    except Exception as e:
+        print(f"[Config] ERROR: Could not create .env file: {e}")
+        print(f"[Config] Please manually create .env file at: {env_path}")
+        print(f"[Config] With content: MODEL_PATH={default_model_path}")
+
+# Load .env file
 try:
     from dotenv import load_dotenv
     # Load .env file from the same directory as this config file
@@ -15,7 +37,7 @@ try:
         load_dotenv(dotenv_path=env_path, override=True)
         print(f"[Config] Loaded .env file from: {env_path}")
     else:
-        print(f"[Config] WARNING: .env file not found at: {env_path}")
+        print(f"[Config] WARNING: .env file still not found at: {env_path}")
 except ImportError:
     # If python-dotenv is not installed, try to load manually
     if env_path.exists():

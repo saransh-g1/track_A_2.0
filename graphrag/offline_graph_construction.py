@@ -18,6 +18,7 @@ Executes all Phase 1 steps:
 import argparse
 import json
 import os
+import time
 from typing import Dict, List
 from phase1_1_input_ingestion import InputIngestion
 from phase1_2_meta_llama_encoder import MetaLlamaEncoder
